@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Tweet Tag Search</string>
+    <string name="cunsumer_key">wWEQyD3fGiunVTspbA1eg1xgF</string>
+    <string name="secret_key">paa7ThkOkTMIVgFs9bpxZjk7H8hURWThdKzgGtE8tyc8QQ1OkE</string>
 </resources>
