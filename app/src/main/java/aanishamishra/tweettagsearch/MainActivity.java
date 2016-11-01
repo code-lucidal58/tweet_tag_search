@@ -16,9 +16,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         String auth=Constants.CONSUMER_KEY + ":"+Constants.SECRET_KEY;
-        String basicAuth = "Basic " + new String(Base64.encode(auth.getBytes(),0));
-        headers.add(new Pair<>("Content_Type","application/x-www-form-urlencoded"));
-        headers.add(new Pair<>("Authorization","Basic "+ basicAuth));
+//        String basicAuth = "Basic " + new String(Base64.encode(auth.getBytes(),0));
+        headers =  new ArrayList<>();
+        headers.add(new Pair<>("Content-Type","application/x-www-form-urlencoded"));
+        headers.add(new Pair<>("Authorization","Basic d1dFUXlEM2ZHaXVuVlRzcGJBMWVnMXhnRjpwYWE3VGhrT2tUTUlWZ0ZzOWJweFpqazdIOGhVUldUaGRLemdHdEU4dHljOFFRMU9rRQ=="));
         NetworkRequest nr = new NetworkRequest(headers,"POST");
         nr.execute(Constants.OAUTH_URL);
     }
