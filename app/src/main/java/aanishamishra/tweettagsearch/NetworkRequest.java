@@ -1,8 +1,11 @@
 package aanishamishra.tweettagsearch;
 
+import android.app.ProgressDialog;
+import android.content.Context;
 import android.os.AsyncTask;
 import android.support.v4.util.Pair;
 import android.util.Log;
+import android.widget.ProgressBar;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -23,26 +26,30 @@ import javax.net.ssl.HttpsURLConnection;
  * Created by aanisha
  */
 
-public class NetworkRequest extends AsyncTask<String, Void, Void> {
-    public String result = "";
+class NetworkRequest extends AsyncTask<String, Void, Void> {
+    String result = "";
+    Context context;
     private ArrayList<Pair<String,String>> headers;
     private String method="";
+    ProgressDialog pd;
 
-    public NetworkRequest(ArrayList<Pair<String, String>> headers, String method) {
+    NetworkRequest(Context context,ArrayList<Pair<String, String>> headers, String method) {
         this.headers = headers;
         this.method = method;
+        this.context = context;
+        pd = new ProgressDialog(context);
     }
 
     @Override
     protected void onPreExecute() {
-
+        pd.setCancelable(false);
+        pd.show();
     }
 
     @Override
     protected Void doInBackground(String... strings) {
         HttpsURLConnection urlConnection = null;
         try {
-
             URL url = new URL(strings[0]);
 
             urlConnection = (HttpsURLConnection) url.openConnection();
@@ -84,6 +91,11 @@ public class NetworkRequest extends AsyncTask<String, Void, Void> {
             e.printStackTrace();
         }
         return null;
+    }
+
+    @Override
+    protected void onPostExecute(Void aVoid) {
+        pd.dismiss();
     }
 
     private String getQuery(List<Pair<String,String>> params) throws UnsupportedEncodingException

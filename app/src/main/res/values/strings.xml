@@ -2,4 +2,11 @@
     <string name="app_name">Tweet Tag Search</string>
     <string name="cunsumer_key">wWEQyD3fGiunVTspbA1eg1xgF</string>
     <string name="secret_key">paa7ThkOkTMIVgFs9bpxZjk7H8hURWThdKzgGtE8tyc8QQ1OkE</string>
+
+    <string name="twitter_fun_facts" formatted="false"><b>Twitter did not invent the hashtag.</b>
+
+#NoSeriously, it didn’t. Hashtags date back to 1988, when people communicated via chat rooms called Internet Relay Chats (IRCs). The first hashtags made their way to Twitter in 2007, when Chris Messina, formerly of Google and now a lead developer at Uber, proposed using them as a way to lump together related tweets. The simple searchable tags instantly caught on.
+
+    <i>how do you feel about using # (pound) for groups. As in #barcamp [msg]?
+    — Chris Messina ? (@chrismessina) August 23, 2007</i></string>
 </resources>

@@ -11,7 +11,16 @@
     tools:context="aanishamishra.tweettagsearch.MainActivity">
 
     <TextView
+        android:id="@+id/text"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!" />
+        android:gravity="center"
+        android:text="@string/twitter_fun_facts"
+        android:textSize="15sp"
+        android:visibility="gone" />
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/tweets"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 </RelativeLayout>
