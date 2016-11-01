@@ -15,6 +15,9 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+
+import javax.net.ssl.HttpsURLConnection;
 
 /**
  * Created by aanisha
@@ -37,12 +40,12 @@ public class NetworkRequest extends AsyncTask<String, Void, Void> {
 
     @Override
     protected Void doInBackground(String... strings) {
-        HttpURLConnection urlConnection = null;
+        HttpsURLConnection urlConnection = null;
         try {
 
             URL url = new URL(strings[0]);
 
-            urlConnection = (HttpURLConnection) url.openConnection();
+            urlConnection = (HttpsURLConnection) url.openConnection();
             urlConnection.setRequestMethod(method);
             for(int i=0;i<headers.size();i++){
                 urlConnection.setRequestProperty(headers.get(i).first, headers.get(i).second);
@@ -50,20 +53,21 @@ public class NetworkRequest extends AsyncTask<String, Void, Void> {
 
             urlConnection.setReadTimeout(15000 /* milliseconds */);
             urlConnection.setConnectTimeout(15000 /* milliseconds */);
-            urlConnection.setDoOutput(false);
+            urlConnection.setDoOutput(true);
             urlConnection.setDoInput(true);
-            List<Pair<String,String>> params = new ArrayList<>();
-            params.add(new Pair<>("grant_type", "client_credentials"));
-
-            OutputStream os = urlConnection.getOutputStream();
-            BufferedWriter writer = new BufferedWriter(
-                    new OutputStreamWriter(os, "UTF-8"));
-            writer.write(getQuery(params));
-            writer.flush();
-            writer.close();
-            os.close();
+            if(strings[0].equals(Constants.OAUTH_URL)) {
+                List<Pair<String,String>> params = new ArrayList<>();
+                params.add(new Pair<>("grant_type", "client_credentials"));
+                OutputStream os = urlConnection.getOutputStream();
+                BufferedWriter writer = new BufferedWriter(
+                        new OutputStreamWriter(os, "UTF-8"));
+                writer.write(getQuery(params));
+                writer.flush();
+                writer.close();
+                os.close();
+            }
             urlConnection.connect();
-            BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()));
+            BufferedReader br = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
             String jsonString;
             StringBuilder sb = new StringBuilder();
             String line;
