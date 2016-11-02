@@ -6,19 +6,20 @@ import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.support.v4.util.Pair;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
 import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
+import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import org.json.JSONException;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -30,6 +31,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -51,7 +53,7 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
         pd.setMessage("Loading data");
         textView = (TextView) findViewById(R.id.text);
         tweetList = (RecyclerView) findViewById(R.id.tweets);
-        sharedPreferences = getSharedPreferences(Constants.PREF_TOKEN,MODE_PRIVATE);
+        sharedPreferences = getSharedPreferences(Constants.PREF_TOKEN, MODE_PRIVATE);
         String auth = null;
         try {
             auth = URLEncoder.encode(Constants.CONSUMER_KEY, "utf-8") + ":" + URLEncoder.encode(Constants.SECRET_KEY, "utf-8");
@@ -62,7 +64,7 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
         headers = new ArrayList<>();
         headers.add(new Pair<>("Content-Type", "application/x-www-form-urlencoded;charset=UTF-8"));
         headers.add(new Pair<>("Authorization", basicAuth));
-        if(checkNetworkStatus()){
+        if (checkNetworkStatus()) {
             networkrequest("POST", Constants.OAUTH_URL).execute(Constants.OAUTH_URL);
 
         }
@@ -125,22 +127,27 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
             @Override
             protected void onPostExecute(String s) {
                 pd.dismiss();
-                if(url.equals(Constants.OAUTH_URL)){
+                if (url.equals(Constants.OAUTH_URL)) {
                     try {
-                        JSONObject jsonObject= new JSONObject(s);
+                        JSONObject jsonObject = new JSONObject(s);
                         String token = jsonObject.optString("access_token");
-                        sharedPreferences.edit().putString(Constants.ACCESS_TOKEN,token).apply();
-                        Log.e("token",token);
+                        sharedPreferences.edit().putString(Constants.ACCESS_TOKEN, token).apply();
+                        Log.e("token", token);
                     } catch (Exception e) {
                         e.printStackTrace();
 //                        Toast.makeText(getBaseContext(),"Oops! Something went wrong. Please try again",Toast.LENGTH_LONG).show();
                     }
-                }
-                else {
-                    textView.setText(s);
+                } else {
+                    textView.setVisibility(View.GONE);
+                    TweetListAdapter tweetListAdapter = new TweetListAdapter(parseTweets(s));
+                    tweetList.setLayoutManager(new LinearLayoutManager(getBaseContext()));
+                    tweetList.setAdapter(tweetListAdapter);
                 }
             }
 
+            /*
+             * Convert POST request parameters to urlencoded form
+             */
             private String getQuery(List<Pair<String, String>> params) throws UnsupportedEncodingException {
                 StringBuilder result = new StringBuilder();
                 boolean first = true;
@@ -161,7 +168,10 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
         };
     }
 
-    private boolean checkNetworkStatus(){
+    /*
+     *Check if the internet access is available
+     */
+    private boolean checkNetworkStatus() {
         ConnectivityManager connMgr = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
 
@@ -171,11 +181,7 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main_menu, menu);
-
-        // Associate searchable configuration with the SearchView
-        // SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
         SearchView searchView = (SearchView) MenuItemCompat.getActionView(menu.findItem(R.id.action_search));
-        // searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
         searchView.setOnQueryTextListener(this);
         return super.onCreateOptionsMenu(menu);
     }
@@ -183,14 +189,39 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
     @Override
     public boolean onQueryTextSubmit(String query) {
         headers = new ArrayList<>();
-        headers.add(new Pair<>(Constants.AUTHORIZATION,"Bearer "+getSharedPreferences(Constants.PREF_TOKEN,MODE_PRIVATE)
-                .getString(Constants.ACCESS_TOKEN,"")));
-        networkrequest("GET",Constants.TWITTER_SEARCH_URL).execute(Constants.TWITTER_SEARCH_URL+"?q=%23"+query);
+        headers.add(new Pair<>(Constants.AUTHORIZATION, "Bearer " + getSharedPreferences(Constants.PREF_TOKEN, MODE_PRIVATE)
+                .getString(Constants.ACCESS_TOKEN, "")));
+        networkrequest("GET", Constants.TWITTER_SEARCH_URL).execute(Constants.TWITTER_SEARCH_URL + "?q=%23" + query + "&src=typd");
         return true;
     }
 
     @Override
     public boolean onQueryTextChange(String newText) {
         return false;
+    }
+
+    public ArrayList<HashMap<String, String>> parseTweets(String json) {
+        ArrayList<HashMap<String, String>> tweetsList = new ArrayList<>();
+
+        try {
+            JSONObject jsonObject = new JSONObject(json);
+            JSONArray statuses = jsonObject.getJSONArray("statuses");
+            for (int i = 0; i < statuses.length(); i++) {
+                JSONObject tweetElement = statuses.getJSONObject(i);
+                HashMap<String, String> hashMap = new HashMap<>();
+                hashMap.put(Constants.PARAM_TEXT, tweetElement.optString(Constants.PARAM_TEXT));
+                hashMap.put(Constants.PARAM_CREATED_AT, tweetElement.optString(Constants.PARAM_CREATED_AT));
+                JSONObject user = tweetElement.getJSONObject("user");
+                hashMap.put(Constants.PARAM_NAME, user.optString(Constants.PARAM_NAME));
+                hashMap.put(Constants.PARAM_SCREN_NAME, user.optString(Constants.PARAM_SCREN_NAME));
+                tweetsList.add(hashMap);
+            }
+            JSONObject search_metadata = jsonObject.getJSONObject("search_metadata");
+            SharedPreferences.Editor editor = getSharedPreferences(Constants.PREF_TWEET_DATA, MODE_PRIVATE).edit();
+            editor.putString(Constants.PARAM_REFRESH_URL, search_metadata.optString(Constants.PARAM_REFRESH_URL)).apply();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return tweetsList;
     }
 }
