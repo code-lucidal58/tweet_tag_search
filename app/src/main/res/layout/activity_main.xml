@@ -16,11 +16,11 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:text="@string/twitter_fun_facts"
-        android:textSize="15sp"
-        android:visibility="gone" />
+        android:textSize="15sp" />
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/tweets"
+        android:layout_below="@id/text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
 </RelativeLayout>

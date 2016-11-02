@@ -33,6 +33,8 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -44,6 +46,7 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
     String result = "";
     SharedPreferences sharedPreferences;
     TextView textView;
+    ArrayList<HashMap<String,String >> hashtweet;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,7 +55,12 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
         pd = new ProgressDialog(this);
         pd.setMessage("Loading data");
         textView = (TextView) findViewById(R.id.text);
+
         tweetList = (RecyclerView) findViewById(R.id.tweets);
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
+        tweetList.setLayoutManager(linearLayoutManager);
+        hashtweet =new ArrayList<>();
+        TweetListAdapter tweetListAdapter = new TweetListAdapter(hashtweet);
         sharedPreferences = getSharedPreferences(Constants.PREF_TOKEN, MODE_PRIVATE);
         String auth = null;
         try {
@@ -68,14 +76,28 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
             networkrequest("POST", Constants.OAUTH_URL).execute(Constants.OAUTH_URL);
 
         }
+        tweetList.addOnScrollListener(new EndlessRecyclerViewScrollListener(linearLayoutManager) {
+            @Override
+            public void onLoadMore(int page, int totalItemsCount) {
+                Log.e("Demo","Inside onLoadMore");
+                networkrequest("GET",Constants.TWITTER_SEARCH_URL)
+                        .execute(Constants.TWITTER_SEARCH_URL+getSharedPreferences(Constants.PREF_TWEET_DATA,MODE_PRIVATE).getString(Constants.PARAM_REFRESH_URL,"?q="));
+            }
+        });
+        new Timer().scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (checkNetworkStatus()) {
+                    networkrequest("POST", Constants.OAUTH_URL).execute(Constants.OAUTH_URL);
+                }
+            }
+        },0,2000);
     }
 
     public AsyncTask<String, Void, String> networkrequest(final String method, final String url) {
         return new AsyncTask<String, Void, String>() {
             @Override
             protected void onPreExecute() {
-                pd.setCancelable(false);
-                pd.show();
             }
 
             @Override
@@ -126,7 +148,6 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
 
             @Override
             protected void onPostExecute(String s) {
-                pd.dismiss();
                 if (url.equals(Constants.OAUTH_URL)) {
                     try {
                         JSONObject jsonObject = new JSONObject(s);
@@ -139,9 +160,26 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
                     }
                 } else {
                     textView.setVisibility(View.GONE);
-                    TweetListAdapter tweetListAdapter = new TweetListAdapter(parseTweets(s));
-                    tweetList.setLayoutManager(new LinearLayoutManager(getBaseContext()));
+                    ArrayList<HashMap<String,String >> hashtweet =parseTweets(s);
+                    TweetListAdapter tweetListAdapter = new TweetListAdapter(hashtweet);
                     tweetList.setAdapter(tweetListAdapter);
+                    if(hashtweet.size()>0) {
+                        SharedPreferences sp = getSharedPreferences(Constants.PREF_TWEET_DATA, MODE_PRIVATE);
+                        if(sp.getString(Constants.PARAM_FIRST_ID,"").isEmpty()){
+                            textView.setVisibility(View.GONE);
+                            getSharedPreferences(Constants.PREF_TWEET_DATA, MODE_PRIVATE).edit()
+                                    .putString(Constants.PARAM_FIRST_ID, hashtweet.get(0).get(Constants.PARAM_STR_ID));
+
+                        } else if (!sp.getString(Constants.PARAM_FIRST_ID,"").equals(hashtweet.get(0).get(Constants.PARAM_STR_ID))){
+                            textView.setVisibility(View.VISIBLE);
+                            textView.setText("new tweets available");
+                            getSharedPreferences(Constants.PREF_TWEET_DATA, MODE_PRIVATE).edit()
+                                    .putString(Constants.PARAM_FIRST_ID, hashtweet.get(0).get(Constants.PARAM_STR_ID));
+                        }
+                    }
+                    int curSize = tweetListAdapter.getItemCount();
+                    hashtweet.addAll(parseTweets(s));
+                    tweetListAdapter.notifyItemRangeInserted(curSize, hashtweet.size() - 1);
                 }
             }
 
@@ -211,6 +249,7 @@ public class MainActivity extends AppCompatActivity implements SearchView.OnQuer
                 HashMap<String, String> hashMap = new HashMap<>();
                 hashMap.put(Constants.PARAM_TEXT, tweetElement.optString(Constants.PARAM_TEXT));
                 hashMap.put(Constants.PARAM_CREATED_AT, tweetElement.optString(Constants.PARAM_CREATED_AT));
+                hashMap.put(Constants.PARAM_STR_ID,tweetElement.optString(Constants.PARAM_STR_ID));
                 JSONObject user = tweetElement.getJSONObject("user");
                 hashMap.put(Constants.PARAM_NAME, user.optString(Constants.PARAM_NAME));
                 hashMap.put(Constants.PARAM_SCREN_NAME, user.optString(Constants.PARAM_SCREN_NAME));

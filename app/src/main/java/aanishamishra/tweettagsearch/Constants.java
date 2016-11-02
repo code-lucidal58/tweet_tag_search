@@ -16,7 +16,9 @@ class Constants {
     static final String CONTENT_TYPE="Content-Type";
     static final String PARAM_TEXT = "text";
     static final String PARAM_CREATED_AT = "created_at";
+    static final String PARAM_STR_ID="id_str";
     static final String PARAM_NAME = "name";
     static final String PARAM_SCREN_NAME = "screen_name";
     static final String PARAM_REFRESH_URL="refresh_url";
+    static final String PARAM_FIRST_ID = "first_id";
 }
